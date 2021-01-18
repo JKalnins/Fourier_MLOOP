@@ -268,13 +268,14 @@ def RepeatRuns(
     min_costs_list = []
     runs_list = np.zeros(repeats)
     # repeatedly run M-LOOP
-    for rep in range(repeats):
-        if not y_targets:
+    if not y_targets:
+        y_targets = np.zeros((repeats, n_ab))
+        for rep in range(repeats):
             a_t = (np.random.random(n_ab) * 2) - 1
             b_t = (np.random.random(n_ab) * 2) - 1
-            y_target = FourierFromParams(a_t, b_t)
-        else:
-            y_target = y_targets[rep]
+            y_targets[rep] = FourierFromParams(a_t, b_t)
+    for rep in range(repeats):
+        y_target = y_targets[rep]
         costs, runs = RunOnce(
             max_allowed_runs, tcost, n_ab, y_target, noise_type, noise_scale
         )

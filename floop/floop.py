@@ -1,6 +1,7 @@
+import datetime
 import os
-import time
 import numpy as np
+import time
 import mloop.controllers as mlc
 import mloop.interfaces as mli
 
@@ -221,6 +222,19 @@ def _CostLengthEqualiser(costs_list, runs_list, repeats):
     return costs_arr, max_length
 
 
+def _TimeToString(datetime):
+    """Converts a datetime object into a string
+    adapted from M-LOOP: mloop.utilities
+
+    Args:
+        datetime (datetime): datetime object (e.g. datetime.datetime.now())
+
+    Returns:
+        str: date time as 'yyyy-mm-dd_hh-mm'
+    """
+    return datetime.strftime("%Y-%m-%d_%H-%M")
+
+
 def _SaveNPZ(filename, *objs):
     """Save objs as a .npz file with filename in directory ./npz/
 
@@ -258,6 +272,7 @@ def RepeatRuns(
 
     Returns:
         tuple: Results of optimisation.
+            start_times: list of start times in case required to access logs
             max_runs: length of longest repeat
             costs_arr: cost of each run in each repeat, padded to be equal lengths if different
             min_costs_arr: cost of minimum run at each run for each repeat, padded to be equal lengths if different
@@ -266,6 +281,7 @@ def RepeatRuns(
     """
     costs_list = []
     min_costs_list = []
+    start_times = []
     runs_list = np.zeros(repeats)
     # repeatedly run M-LOOP
     if not y_targets:
@@ -276,6 +292,8 @@ def RepeatRuns(
             y_targets[rep] = FourierFromParams(a_t, b_t)
     for rep in range(repeats):
         y_target = y_targets[rep]
+        start_time = datetime.datetime.now()
+        start_times.append(_TimeToString(start_time))
         costs, runs = RunOnce(
             max_allowed_runs, tcost, n_ab, y_target, noise_type, noise_scale
         )
@@ -309,6 +327,7 @@ def RepeatRuns(
         noise_type,
         noise_scale,
         # results
+        start_times,
         max_runs,
         costs_arr,
         min_costs_arr,
@@ -316,6 +335,7 @@ def RepeatRuns(
         min_costs_stderr,
     )
     return (
+        start_times,
         max_runs,
         costs_arr,
         min_costs_arr,
@@ -338,6 +358,7 @@ def ReadRepeatNPZ(filename):
         y_targets,
         noise_type,
         noise_scale,
+        start_times,
         max_runs,
         costs_arr,
         min_costs_arr,
@@ -352,11 +373,12 @@ def ReadRepeatNPZ(filename):
     y_targets = npz["arr_4"]
     noise_type = str(npz["arr_5"])
     noise_scale = float(npz["arr_6"])
-    max_runs = int(npz["arr_7"])
-    costs_arr = npz["arr_8"]
-    min_costs_arr = npz["arr_9"]
-    min_costs_mean = npz["arr_10"]
-    min_costs_stderr = npz["arr_11"]
+    start_times = list(npz["arr_7"])
+    max_runs = int(npz["arr_8"])
+    costs_arr = npz["arr_9"]
+    min_costs_arr = npz["arr_10"]
+    min_costs_mean = npz["arr_11"]
+    min_costs_stderr = npz["arr_12"]
     return (
         repeats,
         max_allowed_runs,
@@ -365,6 +387,7 @@ def ReadRepeatNPZ(filename):
         y_targets,
         noise_type,
         noise_scale,
+        start_times,
         max_runs,
         costs_arr,
         min_costs_arr,

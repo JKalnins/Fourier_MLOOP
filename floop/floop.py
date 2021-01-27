@@ -256,6 +256,7 @@ def RepeatRuns(
     noise_type="None",
     noise_scale=0.0,
     sleep_time=0.0,
+    save=True,
 ):
     """Runs M-LOOP for the given parameters repeatedly. Saves to an npz and returns a tuple.
 
@@ -266,9 +267,10 @@ def RepeatRuns(
         max_allowed_runs (int, optional): Max number of runs for each repeat. Defaults to 100.
         tcost (float, optional): Target cost for each run. Defaults to 0.0.
         y_targets (list of np.ndarrays, optional): if specified, gives a target function. If not specified, random FS is used each time. Defaults to None.
-        noise_type (str, optional): Type of noise ("None", "add", or "multi"). Defaults to "None".
+        noise_type (str, optional): Type of noise ("None", "add", or "multi"). Defaults to "None" (str).
         noise_scale (float, optional): Std Dev of noise if noise_type != "None". Defaults to 0.0.
         sleep_time (float, optional): time in seconds between runs in case each run needs a separate time-label
+        save (bool, optional): Whether to save the data to a .npz file. Defaults to True.
 
     Returns:
         tuple: Results of optimisation.
@@ -316,24 +318,25 @@ def RepeatRuns(
     min_costs_stderr = [
         np.std(min_costs_arr[:, i]) / np.sqrt(repeats) for i in range(max_runs)
     ]
-    _SaveNPZ(
-        savename,
-        # hyperparameters
-        repeats,
-        max_allowed_runs,
-        tcost,
-        n_ab,
-        y_targets,
-        noise_type,
-        noise_scale,
-        # results
-        start_times,
-        max_runs,
-        costs_arr,
-        min_costs_arr,
-        min_costs_mean,
-        min_costs_stderr,
-    )
+    if save:
+        _SaveNPZ(
+            savename,
+            # hyperparameters
+            repeats,
+            max_allowed_runs,
+            tcost,
+            n_ab,
+            y_targets,
+            noise_type,
+            noise_scale,
+            # results
+            start_times,
+            max_runs,
+            costs_arr,
+            min_costs_arr,
+            min_costs_mean,
+            min_costs_stderr,
+        )
     return (
         start_times,
         max_runs,

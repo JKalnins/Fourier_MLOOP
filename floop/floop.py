@@ -14,7 +14,7 @@ def FourierFromParams(a, b):
         a (np.ndarray): array of n_ab elements determining b-coefficients
 
     Returns:
-        np.ndarray: array of y-values from FS
+        np.ndarray: array of 200 y-values from FS
     """
     # can alter these if you want to adjust the limits for some reason
     L, xmin, xmax, nsteps = np.pi, -1 * np.pi, np.pi, 200
@@ -90,7 +90,7 @@ def Cost(guess, y_target, noise_type="None", noise_scale=0.0):
         float: uncertainty on cost
     """
     # true value of cost calculation
-    n_ab = len(guess)
+    n_ab = len(guess) // 2
     a_g = guess[:n_ab]
     b_g = guess[n_ab:]
     y_guess = FourierFromParams(a_g, b_g)
@@ -106,7 +106,7 @@ def Cost(guess, y_target, noise_type="None", noise_scale=0.0):
             uncert = square_diff * noise_scale
         else:
             raise ValueError(
-                'variable noise_type must be one of "None", "add", "multi"'
+                f'variable noise_type must be one of "None", "add", "multi". Noise Type was given as "{noise_type}"'
             )
     else:
         cost = square_diff
@@ -168,7 +168,7 @@ def RunOnce(
         np.ndarray: costs of each run
         int: number of runs taken
     """
-    interface = _FourierInterface(n_ab, y_target, noise_scale, noise_type)
+    interface = _FourierInterface(n_ab, y_target, noise_type, noise_scale)
     controller = mlc.create_controller(
         interface,
         max_num_runs=max_allowed_runs,
@@ -180,7 +180,7 @@ def RunOnce(
         controller_archive_file_type="pkl",
         learner_archive_file_type="pkl",
     )
-    controller.optimize
+    controller.optimize()
     costs = controller.in_costs
     runs = controller.num_in_costs
     return costs, runs
@@ -214,7 +214,7 @@ def _CostLengthEqualiser(costs_list, runs_list, repeats):
         np.ndarray: equalised-length array of costs
         int: length of all costs-lists
     """
-    max_length = np.amax(runs_list)
+    max_length = int(np.amax(runs_list))
     costs_arr = np.empty((repeats, max_length))
     for i, cost in enumerate(costs_list):
         costs_arr[i, : runs_list[i]] = cost
@@ -286,8 +286,8 @@ def RepeatRuns(
     start_times = []
     runs_list = np.zeros(repeats)
     # repeatedly run M-LOOP
-    if not y_targets:
-        y_targets = np.zeros((repeats, n_ab))
+    if not isinstance(y_targets, list):
+        y_targets = np.zeros((repeats, 200))
         for rep in range(repeats):
             a_t = (np.random.random(n_ab) * 2) - 1
             b_t = (np.random.random(n_ab) * 2) - 1
@@ -303,11 +303,11 @@ def RepeatRuns(
         min_costs_list.append(_MinCosts(costs))
         runs_list[rep] = runs
         if sleep_time > 0.0:
-            if rep != repeats - 1:
+            if rep < repeats - 1:
                 time.sleep(sleep_time)  # so it doesn't use the same timestamp twice
     # equalise costs lists if required
     if np.ndarray.all(runs_list == runs_list[0]):
-        max_runs = runs_list[0]
+        max_runs = int(runs_list[0])
         costs_arr = np.array(costs_list)
         min_costs_arr = np.array(min_costs_list)
     else:

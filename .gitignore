@@ -126,3 +126,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# testing folders
+M-LOOP_archives/
+M-LOOP_logs/

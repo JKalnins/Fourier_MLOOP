@@ -1,6 +1,7 @@
 import datetime
-import os
+import matplotlib.pyplot as plt
 import numpy as np
+import os
 import time
 import mloop.controllers as mlc
 import mloop.interfaces as mli
@@ -397,3 +398,31 @@ def ReadRepeatNPZ(filename):
         min_costs_mean,
         min_costs_stderr,
     )
+
+
+def ErrorbarRepeatPlot(max_runs, min_costs_mean, min_costs_stderr, savename=None):
+    """Plots the mean minimum cost & std error as a scatter plot with error bars
+
+    Args:
+        max_runs (int): Length of min_costs_mean array
+        min_costs_mean (np.ndarray): Array of min mean costs
+        min_costs_stderr (np.ndarray): Array of min costs std errors
+        savename (str, optional): Name for file to be saved to, leave blank if no need for saving. Defaults to None.
+    """
+    runs = np.arange(max_runs)
+    plt.errorbar(
+        runs,
+        min_costs_mean,
+        yerr=min_costs_stderr,
+        fmt=".",
+        c="black",
+        ms=5,
+        capsize=2,
+        capthick=1,
+    )
+    plt.yscale("log")
+    if savename:
+        if not os.path.isdir("./images"):
+            os.mkdir("./images")
+        plt.savefig(f"images/{savename}.png", dpi=600)
+    plt.show()

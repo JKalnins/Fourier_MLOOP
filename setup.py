@@ -6,7 +6,7 @@ setuptools.setup(
     description="Runs M-LOOP using Fourier Series and save outputs",
     url="#",
     author="Jacob",
-    install_requires=["numpy", "m-loop"],
+    install_requires=["matplotlib", "numpy", "m-loop"],
     author_email="",
     packages=setuptools.find_packages(),
     zip_safe=False,

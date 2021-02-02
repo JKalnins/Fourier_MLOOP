@@ -153,7 +153,13 @@ class _FourierInterface(mli.Interface):
 
 
 def RunOnce(
-    max_allowed_runs, tcost, n_ab, y_target, noise_type="None", noise_scale=0.0
+    max_allowed_runs,
+    tcost,
+    n_ab,
+    y_target,
+    noise_type="None",
+    noise_scale=0.0,
+    learner="gaussian_process",
 ):
     """Runs M-LOOP once and returns the cost of each run, and the number of runs
 
@@ -164,14 +170,24 @@ def RunOnce(
         y_target (np.ndarray): y-values of target function
         noise_type (str, optional): type of noise to combine with costs. Defaults to "None".
         noise_scale (float, optional): std dev of noise to combine with costs. Defaults to 0.0.
+        learner (str, optional): Learner type for M-LOOP. Defaults to "gaussian_process".
 
     Returns:
         np.ndarray: costs of each run
         int: number of runs taken
     """
+    if learner not in [
+        "gaussian_process",
+        "neural_net",
+        "differential_evolution",
+        "nelder_mead",
+        "random",
+    ]:
+        raise ValueError("learner was not one of the valid choices.")
     interface = _FourierInterface(n_ab, y_target, noise_type, noise_scale)
     controller = mlc.create_controller(
         interface,
+        controller_type=learner,
         max_num_runs=max_allowed_runs,
         target_cost=tcost,
         num_params=n_ab * 2,
@@ -256,6 +272,7 @@ def RepeatRuns(
     y_targets=None,
     noise_type="None",
     noise_scale=0.0,
+    learner="gaussian_process",
     sleep_time=0.0,
     save=True,
 ):
@@ -298,7 +315,13 @@ def RepeatRuns(
         start_time = datetime.datetime.now()
         start_times.append(_TimeToString(start_time))
         costs, runs = RunOnce(
-            max_allowed_runs, tcost, n_ab, y_target, noise_type, noise_scale
+            max_allowed_runs,
+            tcost,
+            n_ab,
+            y_target,
+            noise_type,
+            noise_scale,
+            learner,
         )
         costs_list.append(costs)
         min_costs_list.append(_MinCosts(costs))
@@ -330,6 +353,7 @@ def RepeatRuns(
             y_targets,
             noise_type,
             noise_scale,
+            learner,
             # results
             start_times,
             max_runs,
@@ -362,6 +386,7 @@ def ReadRepeatNPZ(filename):
         y_targets,
         noise_type,
         noise_scale,
+        learner,
         start_times,
         max_runs,
         costs_arr,
@@ -377,12 +402,13 @@ def ReadRepeatNPZ(filename):
     y_targets = npz["arr_4"]
     noise_type = str(npz["arr_5"])
     noise_scale = float(npz["arr_6"])
-    start_times = list(npz["arr_7"])
-    max_runs = int(npz["arr_8"])
-    costs_arr = npz["arr_9"]
-    min_costs_arr = npz["arr_10"]
-    min_costs_mean = npz["arr_11"]
-    min_costs_stderr = npz["arr_12"]
+    learner = str(npz["arr_7"])
+    start_times = list(npz["arr_8"])
+    max_runs = int(npz["arr_9"])
+    costs_arr = npz["arr_10"]
+    min_costs_arr = npz["arr_11"]
+    min_costs_mean = npz["arr_12"]
+    min_costs_stderr = npz["arr_13"]
     return (
         repeats,
         max_allowed_runs,
@@ -391,6 +417,7 @@ def ReadRepeatNPZ(filename):
         y_targets,
         noise_type,
         noise_scale,
+        learner,
         start_times,
         max_runs,
         costs_arr,

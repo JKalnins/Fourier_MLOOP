@@ -287,6 +287,7 @@ def RepeatRuns(
         y_targets (list of np.ndarrays, optional): if specified, gives a target function. If not specified, random FS is used each time. Defaults to None.
         noise_type (str, optional): Type of noise ("None", "add", or "multi"). Defaults to "None" (str).
         noise_scale (float, optional): Std Dev of noise if noise_type != "None". Defaults to 0.0.
+        learner (str, optional): Learner type for M-LOOP. Defaults to "gaussian_process".
         sleep_time (float, optional): time in seconds between runs in case each run needs a separate time-label
         save (bool, optional): Whether to save the data to a .npz file. Defaults to True.
 

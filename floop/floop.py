@@ -175,6 +175,7 @@ def RunOnce(
     Returns:
         np.ndarray: costs of each run
         int: number of runs taken
+        list: parameters of each run (list of np.ndarrays)
     """
     if learner not in [
         "gaussian_process",
@@ -200,7 +201,24 @@ def RunOnce(
     controller.optimize()
     costs = controller.in_costs
     runs = controller.num_in_costs
-    return costs, runs
+    out_params = controller.out_params
+    return costs, runs, out_params
+
+
+def TrueCostsFromOuts(out_params, y_target):
+    """Calculates the true (noise-less) cost from a set of parameters and a target
+
+    Args:
+        out_params (list): Parameters to calculate cost. list of np.ndarrays.
+        y_target (np.ndarray): y-values of target function
+
+    Returns:
+        np.ndarray: True costs of parameters w.r.t target
+    """
+    true_costs = np.zeros(len(out_params))
+    for i, params in enumerate(out_params):
+        true_costs[i] = Cost(params, y_target, noise_type="None", noise_scale=0)
+    return true_costs
 
 
 def _MinCosts(costs):
@@ -296,14 +314,15 @@ def RepeatRuns(
             start_times: list of start times in case required to access logs
             max_runs: length of longest repeat
             costs_arr: cost of each run in each repeat, padded to be equal lengths if different
-            min_costs_arr: cost of minimum run at each run for each repeat, padded to be equal lengths if different
+            min_costs_arr: noise-less cost of minimum run at each run for each repeat, padded to be equal lengths if different
             min_costs_mean: mean of min_costs_arr (over each repeat)
             min_costs_stderr: std err (stddev/sqrt(repeats)) of min_costs_arr (over each repeat)
     """
     costs_list = []
     min_costs_list = []
     start_times = []
-    runs_list = np.zeros(repeats)
+    runs_list = np.zeros(repeats, dtype=int)
+
     # repeatedly run M-LOOP
     if not isinstance(y_targets, list):
         y_targets = np.zeros((repeats, 200))
@@ -311,11 +330,13 @@ def RepeatRuns(
             a_t = (np.random.random(n_ab) * 2) - 1
             b_t = (np.random.random(n_ab) * 2) - 1
             y_targets[rep] = FourierFromParams(a_t, b_t)
+
     for rep in range(repeats):
         y_target = y_targets[rep]
         start_time = datetime.datetime.now()
         start_times.append(_TimeToString(start_time))
-        costs, runs = RunOnce(
+        # Run
+        costs, runs, out_params = RunOnce(
             max_allowed_runs,
             tcost,
             n_ab,
@@ -325,11 +346,15 @@ def RepeatRuns(
             learner,
         )
         costs_list.append(costs)
-        min_costs_list.append(_MinCosts(costs))
+        true_costs = TrueCostsFromOuts(out_params)
+        # minimum costs are calculated as true aka noise-less costs
+        min_costs_list.append(_MinCosts(true_costs))
         runs_list[rep] = runs
-        if sleep_time > 0.0:
+
+        if sleep_time > 0.0:  # ensuring it doesn't use the same timestamp twice
             if rep < repeats - 1:
-                time.sleep(sleep_time)  # so it doesn't use the same timestamp twice
+                time.sleep(sleep_time)
+
     # equalise costs lists if required
     if np.ndarray.all(runs_list == runs_list[0]):
         max_runs = int(runs_list[0])
@@ -338,11 +363,13 @@ def RepeatRuns(
     else:
         costs_arr, max_runs = _CostLengthEqualiser(costs_list, runs_list, repeats)
         min_costs_arr, _ = _CostLengthEqualiser(min_costs_list, runs_list, repeats)
+
     # mean & std error
     min_costs_mean = np.array([np.mean(min_costs_arr[:, i]) for i in range(max_runs)])
     min_costs_stderr = [
         np.std(min_costs_arr[:, i]) / np.sqrt(repeats) for i in range(max_runs)
     ]
+
     if save:
         _SaveNPZ(
             savename,

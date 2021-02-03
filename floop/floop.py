@@ -217,7 +217,7 @@ def TrueCostsFromOuts(out_params, y_target):
     """
     true_costs = np.zeros(len(out_params))
     for i, params in enumerate(out_params):
-        true_costs[i] = Cost(params, y_target, noise_type="None", noise_scale=0)
+        true_costs[i], _ = Cost(params, y_target, noise_type="None", noise_scale=0)
     return true_costs
 
 
@@ -346,7 +346,7 @@ def RepeatRuns(
             learner,
         )
         costs_list.append(costs)
-        true_costs = TrueCostsFromOuts(out_params)
+        true_costs = TrueCostsFromOuts(out_params, y_target)
         # minimum costs are calculated as true aka noise-less costs
         min_costs_list.append(_MinCosts(true_costs))
         runs_list[rep] = runs

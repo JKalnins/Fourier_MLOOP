@@ -7,16 +7,17 @@ import mloop.controllers as mlc
 import mloop.interfaces as mli
 
 
-def FourierFromParams(a, b):
+def FourierFromParams(params):
     """Calculate the y-values of a fourier series with given a, b parameters, normalised to the maximum y-value.
 
     Args:
-        a (np.ndarray): array of n_ab elements determining a-coefficients
-        a (np.ndarray): array of n_ab elements determining b-coefficients
+        params (np.ndarray): array of (2 * n_ab) elements determining a-coefficients
 
     Returns:
         np.ndarray: array of 200 y-values from FS
     """
+    n_ab = len(params) // 2
+    a, b = params[:n_ab], params[n_ab:]
     # can alter these if you want to adjust the limits for some reason
     L, xmin, xmax, nsteps = np.pi, -1 * np.pi, np.pi, 200
     xs = np.linspace(xmin, xmax, nsteps)
@@ -74,11 +75,11 @@ def _AddNoise(square_diff: float, noise_scale: float) -> float:
     return cost_noisy
 
 
-def Cost(guess, y_target, noise_type="None", noise_scale=0.0):
+def Cost(guess_params, y_target, noise_type="None", noise_scale=0.0):
     """Calculates the cost of an FS guess against a target, including noise
 
     Args:
-        guess (np.ndarray): a,b-parameters for the guess
+        guess_params (np.ndarray): a,b-parameters for the guess
         y_target (np.ndarray): y-values of the target
         noise_type (str, optional): Type of noise ("None", "add", or "multi"). Defaults to "None".
         noise_scale (float, optional): Std Dev of noise if noise_type != "None". Defaults to 0.0.
@@ -91,10 +92,7 @@ def Cost(guess, y_target, noise_type="None", noise_scale=0.0):
         float: uncertainty on cost
     """
     # true value of cost calculation
-    n_ab = len(guess) // 2
-    a_g = guess[:n_ab]
-    b_g = guess[n_ab:]
-    y_guess = FourierFromParams(a_g, b_g)
+    y_guess = FourierFromParams(guess_params)
     square_diff = sum((y_target - y_guess) ** 2) / (len(y_target) * len(a_g))
 
     # adding noise, either additive or multiplicative

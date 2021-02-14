@@ -8,7 +8,7 @@ import mloop.interfaces as mli
 
 
 def FourierFromParams(a, b):
-    """Calculate the y-values of a fourier series with given a, b parameters.
+    """Calculate the y-values of a fourier series with given a, b parameters, normalised to the maximum y-value.
 
     Args:
         a (np.ndarray): array of n_ab elements determining a-coefficients
@@ -314,6 +314,7 @@ def RepeatRuns(
             start_times: list of start times in case required to access logs
             max_runs: length of longest repeat
             costs_arr: cost of each run in each repeat, padded to be equal lengths if different
+            params_list: list of the params for each run in each repeat. List of np.ndarrays with dimensions (runs,params)
             min_costs_arr: noise-less cost of minimum run at each run for each repeat, padded to be equal lengths if different
             min_costs_mean: mean of min_costs_arr (over each repeat)
             min_costs_stderr: std err (stddev/sqrt(repeats)) of min_costs_arr (over each repeat)
@@ -321,6 +322,7 @@ def RepeatRuns(
     costs_list = []
     min_costs_list = []
     start_times = []
+    params_list = []
     runs_list = np.zeros(repeats, dtype=int)
 
     # repeatedly run M-LOOP
@@ -347,6 +349,7 @@ def RepeatRuns(
         )
         costs_list.append(costs)
         true_costs = TrueCostsFromOuts(out_params, y_target)
+        params_list.append(out_params)
         # minimum costs are calculated as true aka noise-less costs
         min_costs_list.append(_MinCosts(true_costs))
         runs_list[rep] = runs
@@ -386,6 +389,7 @@ def RepeatRuns(
             start_times,
             max_runs,
             costs_arr,
+            params_list,
             min_costs_arr,
             min_costs_mean,
             min_costs_stderr,
@@ -394,19 +398,22 @@ def RepeatRuns(
         start_times,
         max_runs,
         costs_arr,
+        params_list,
         min_costs_arr,
         min_costs_mean,
         min_costs_stderr,
     )
 
 
-def ReadRepeatNPZ(filename):
+def ReadRepeatNPZ(filename=None, fullpath=None):
     """Reads an NPZ file saved by RepeatRuns
 
     Args:
-        filename (str): filename supplied to RepeatRuns
+        filename (str, optional): filename supplied to RepeatRuns. Defaults to None.
+        fullpath (str, optional): Full file path in case filename fails for some reason. Defaults to None.
 
-    Returns: (various)
+    Returns: (various) - see RepeatRuns for explanation of outputs
+        ----hyperparameters----
         repeats,
         max_allowed_runs,
         tcost,
@@ -415,14 +422,19 @@ def ReadRepeatNPZ(filename):
         noise_type,
         noise_scale,
         learner,
+        ----outputs----
         start_times,
         max_runs,
         costs_arr,
+        params_list,
         min_costs_arr,
         min_costs_mean,
         min_costs_stderr
     """
-    npz = np.load(f"./npz/{filename}.npz")
+    if not fullpath:
+        npz = np.load(f"./npz/{filename}.npz")
+    else:
+        npz = np.load(fullpath)
     repeats = int(npz["arr_0"])
     max_allowed_runs = int(npz["arr_1"])
     tcost = float(npz["arr_2"])
@@ -434,9 +446,10 @@ def ReadRepeatNPZ(filename):
     start_times = list(npz["arr_8"])
     max_runs = int(npz["arr_9"])
     costs_arr = npz["arr_10"]
-    min_costs_arr = npz["arr_11"]
-    min_costs_mean = npz["arr_12"]
-    min_costs_stderr = npz["arr_13"]
+    params_list = list(npz["arr_11"])
+    min_costs_arr = npz["arr_12"]
+    min_costs_mean = npz["arr_13"]
+    min_costs_stderr = npz["arr_14"]
     return (
         repeats,
         max_allowed_runs,
@@ -449,6 +462,7 @@ def ReadRepeatNPZ(filename):
         start_times,
         max_runs,
         costs_arr,
+        params_list,
         min_costs_arr,
         min_costs_mean,
         min_costs_stderr,

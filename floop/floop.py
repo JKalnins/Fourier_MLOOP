@@ -2,7 +2,7 @@ import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from time import sleep
+from time import sleep, process_time
 import mloop.controllers as mlc
 import mloop.interfaces as mli
 
@@ -176,6 +176,7 @@ def RunOnce(
         np.ndarray: costs of each run
         int: number of runs taken
         list: parameters of each run (list of np.ndarrays)
+        float: process_time of controller.optimize()
     """
     if learner not in [
         "gaussian_process",
@@ -198,11 +199,14 @@ def RunOnce(
         controller_archive_file_type="pkl",
         learner_archive_file_type="pkl",
     )
+    t_init = process_time()
     controller.optimize()
+    t_fin = process_time()
+    time_taken = t_fin - t_init
     costs = controller.in_costs
     runs = controller.num_in_costs
     out_params = controller.out_params
-    return costs, runs, out_params
+    return costs, runs, out_params, time_taken
 
 
 def TrueCostsFromOuts(out_params, y_target):
@@ -270,6 +274,18 @@ def _TimeToString(datetime):
     return datetime.strftime("%Y-%m-%d_%H-%M")
 
 
+def _TimingFormatter(times_list):
+    """Prints mean and std deviation of the time taken for optimisation
+
+    Args:
+        times_list (list): list of process_times for runs
+    """
+    mean = np.mean(times_list)
+    stdev = np.std(times_list)
+    print(f"Mean Runtime: {mean:.3g} s")
+    print(f"Standard Deviation: {stdev:.3g} s")
+
+
 def _SaveNPZ(filename, *objs):
     """Save objs as a .npz file with filename in directory ./npz/
 
@@ -321,6 +337,7 @@ def RepeatRuns(
     """
     costs_list = []
     min_costs_list = []
+    times_list = []
     start_times = []
     params_list = []
     runs_list = np.zeros(repeats, dtype=int)
@@ -329,16 +346,15 @@ def RepeatRuns(
     if not isinstance(y_targets, list):
         y_targets = np.zeros((repeats, 200))
         for rep in range(repeats):
-            a_t = (np.random.random(n_ab) * 2) - 1
-            b_t = (np.random.random(n_ab) * 2) - 1
-            y_targets[rep] = FourierFromParams(a_t, b_t)
+            guess_params = (np.random.random(n_ab * 2) * 2) - 1
+            y_targets[rep] = FourierFromParams(guess_params)
 
     for rep in range(repeats):
         y_target = y_targets[rep]
         start_time = datetime.datetime.now()
         start_times.append(_TimeToString(start_time))
         # Run
-        costs, runs, out_params = RunOnce(
+        costs, runs, out_params, time_taken = RunOnce(
             max_allowed_runs,
             tcost,
             n_ab,
@@ -347,6 +363,8 @@ def RepeatRuns(
             noise_scale,
             learner,
         )
+        # Combine data
+        times_list.append(time_taken)
         costs_list.append(costs)
         true_costs = TrueCostsFromOuts(out_params, y_target)
         params_list.append(out_params)
@@ -373,6 +391,9 @@ def RepeatRuns(
         np.std(min_costs_arr[:, i]) / np.sqrt(repeats) for i in range(max_runs)
     ]
 
+    # Print Times
+    _TimingFormatter(times_list)
+
     if save:
         _SaveNPZ(
             savename,
@@ -387,6 +408,7 @@ def RepeatRuns(
             learner,
             # results
             start_times,
+            times_list,
             max_runs,
             costs_arr,
             params_list,
@@ -396,6 +418,7 @@ def RepeatRuns(
         )
     return (
         start_times,
+        times_list,
         max_runs,
         costs_arr,
         params_list,
@@ -444,12 +467,13 @@ def ReadRepeatNPZ(filename=None, fullpath=None):
     noise_scale = float(npz["arr_6"])
     learner = str(npz["arr_7"])
     start_times = list(npz["arr_8"])
-    max_runs = int(npz["arr_9"])
-    costs_arr = npz["arr_10"]
-    params_list = list(npz["arr_11"])
-    min_costs_arr = npz["arr_12"]
-    min_costs_mean = npz["arr_13"]
-    min_costs_stderr = npz["arr_14"]
+    times_list = npz["arr_9"]
+    max_runs = int(npz["arr_10"])
+    costs_arr = npz["arr_11"]
+    params_list = list(npz["arr_12"])
+    min_costs_arr = npz["arr_13"]
+    min_costs_mean = npz["arr_14"]
+    min_costs_stderr = npz["arr_15"]
     return (
         repeats,
         max_allowed_runs,
@@ -460,6 +484,7 @@ def ReadRepeatNPZ(filename=None, fullpath=None):
         noise_scale,
         learner,
         start_times,
+        times_list,
         max_runs,
         costs_arr,
         params_list,

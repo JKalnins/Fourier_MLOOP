@@ -2,7 +2,7 @@ import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import time
+from time import sleep
 import mloop.controllers as mlc
 import mloop.interfaces as mli
 
@@ -356,7 +356,7 @@ def RepeatRuns(
 
         if sleep_time > 0.0:  # ensuring it doesn't use the same timestamp twice
             if rep < repeats - 1:
-                time.sleep(sleep_time)
+                sleep(sleep_time)
 
     # equalise costs lists if required
     if np.ndarray.all(runs_list == runs_list[0]):

@@ -93,7 +93,9 @@ def Cost(guess_params, y_target, noise_type="None", noise_scale=0.0):
     """
     # true value of cost calculation
     y_guess = FourierFromParams(guess_params)
-    square_diff = sum((y_target - y_guess) ** 2) / (len(y_target) * len(a_g))
+    square_diff = sum((y_target - y_guess) ** 2) / (
+        len(y_target) * (len(guess_params) / 2)
+    )
 
     # adding noise, either additive or multiplicative
     if noise_type != "None":

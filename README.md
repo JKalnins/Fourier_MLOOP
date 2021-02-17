@@ -25,11 +25,12 @@ def main():
     noise_type = "add"
     noise_scale = 0.0 # standard deviation of noise
     sleep_time = 0.0
-    save = True
+    save = False
 
     # Run Repeats
     (
         _,  # start_times
+        _,  # times_list
         max_runs,
         _,  # costs_arr
         _,  # min_costs_arr

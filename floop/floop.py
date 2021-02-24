@@ -2,7 +2,7 @@ import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from time import sleep, process_time
+from time import sleep, process_time, perf_counter
 import mloop.controllers as mlc
 import mloop.interfaces as mli
 
@@ -199,9 +199,9 @@ def RunOnce(
         controller_archive_file_type="pkl",
         learner_archive_file_type="pkl",
     )
-    t_init = process_time()
+    t_init = perf_counter()
     controller.optimize()
-    t_fin = process_time()
+    t_fin = perf_counter()
     time_taken = t_fin - t_init
     costs = controller.in_costs
     runs = controller.num_in_costs
@@ -444,7 +444,7 @@ def ReadRepeatNPZ(filename=None, fullpath=None):
         y_targets,
         noise_type,
         noise_scale,
-        learner,
+        learner_type,
         ----outputs----
         start_times,
         max_runs,
@@ -465,7 +465,7 @@ def ReadRepeatNPZ(filename=None, fullpath=None):
     y_targets = npz["arr_4"]
     noise_type = str(npz["arr_5"])
     noise_scale = float(npz["arr_6"])
-    learner = str(npz["arr_7"])
+    learner_type = str(npz["arr_7"])
     start_times = list(npz["arr_8"])
     times_list = npz["arr_9"]
     max_runs = int(npz["arr_10"])
@@ -482,7 +482,7 @@ def ReadRepeatNPZ(filename=None, fullpath=None):
         y_targets,
         noise_type,
         noise_scale,
-        learner,
+        learner_type,
         start_times,
         times_list,
         max_runs,
@@ -520,3 +520,76 @@ def ErrorbarRepeatPlot(max_runs, min_costs_mean, min_costs_stderr, savename=None
             os.mkdir("./images")
         plt.savefig(f"images/{savename}.png", dpi=600)
     plt.show()
+
+
+def _SciFormat(preformat, number, postformat="", sf=4):
+    """Prints numbers in scientific notation (for graphing using LaTeX in matplotlib)
+    note: 4 sig fig
+    i.e. 12000 -> 1.2 x 10^4
+
+    Exceptions for zero (returns "{preformat} 0 {postformat}")
+    and for powers of 10 (returns "{preformat} 10^(x) {postformat}")
+
+    Args:
+        preformat (str): Any text to go before the number. If none, use "".
+        number (float): Number to be converted into scientific notation.
+        postformat (str, optional): Any text to go after the number. Needs a space to start. Defaults to "".
+        sf (int, optional): Sig figs to go on the number. Defaults to 4.
+    Returns:
+        str: String of scientific notation.
+    """
+    try:
+        exp = int(np.floor(np.log10(number)))
+        value = number / (10 ** exp)
+        if preformat != "":
+            if value != 1.0:
+                sci = f"{preformat} {value:.{sf}g} $\\times 10^{{{exp}}}${postformat}"
+            else:
+                sci = f"{preformat} $10^{{{exp}}}${postformat}"
+        else:
+            if value != 1.0:
+                sci = f"{value:.{sf}g} $\\times 10^{{{exp}}}${postformat}"
+            else:
+                sci = f"$10^{{{exp}}}${postformat}"
+    except OverflowError:  # aka zero
+        if preformat != "":
+            sci = f"{preformat} {number}{postformat}"
+        else:
+            sci = f"{number}{postformat}"
+    return sci
+
+
+def SquareDiffPlot(guess, y_target, ax, fontsize=12, cost_xy=(0, 0)):
+    """Plots the square difference between guess and y_target on a given axes
+
+    Args:
+        guess (np.ndarray): parameters for guess
+        y_target (np.ndarray): values of target function (200 length)
+        ax (matplotlib.axes.Axes): axes to plot the figure on
+        fontsize (int, optional): font size for annotations. Defaults to 12.
+        cost_xy (tuple, optional): location for cost annotation. Defaults to (0, 0.9).
+    """
+    y_guess = FourierFromParams(guess)
+    square_diff = (y_target - y_guess) ** 2
+    cost = Cost(guess, y_target)[0]
+    xs = np.linspace(-np.pi, np.pi, 200)
+    diff_max = np.amax(square_diff)
+
+    # Plotting
+    ax.plot(xs, square_diff)
+    ax.annotate(
+        _SciFormat("Cost =", cost),
+        xy=cost_xy,
+        xycoords="axes fraction",
+        fontfamily="serif",
+        fontsize=fontsize,
+    )
+    ax.axhline(0, c="k")
+
+    # Design
+    ax.set_xlim([-np.pi, np.pi])
+    ax.set_xticks([])
+    ax.set_ylim([-0.15 * diff_max, 1.05 * diff_max])
+    ax.set_yticks([diff_max])
+    ax.set_yticklabels([_SciFormat("", diff_max, sf=2)])
+    ax.tick_params(axis="y", direction="in", labelsize=11, pad=-65)

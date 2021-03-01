@@ -193,8 +193,8 @@ def RunOnce(
         max_num_runs=max_allowed_runs,
         target_cost=tcost,
         num_params=n_ab * 2,
-        min_boundary=np.full(n_ab * 2, -2),  # range [-1, 1]
-        max_boundary=np.full(n_ab * 2, 2),
+        min_boundary=np.full(n_ab * 2, -1),  # range [-1, 1]
+        max_boundary=np.full(n_ab * 2, 1),
         no_delay=False,
         controller_archive_file_type="pkl",
         learner_archive_file_type="pkl",
@@ -239,6 +239,27 @@ def _MinCosts(costs):
         if c < min_costs[i]:
             min_costs[i:] = c
     return min_costs
+
+
+def MinCostAndParams(costs, params):
+    """Returns an array of the minimum cost found by each run.
+
+    Args:
+        costs (np.ndarray): costs measured by the experiment
+
+    Returns:
+        np.ndarray: minimum cost array
+    """
+    min_costs = np.full_like(costs, costs[0])
+    min_params = np.empty_like(params)
+    for j in range(min_params):
+        min_params[j, :] = params[0, :]
+    for i, c in enumerate(costs):
+        if c < min_costs[i]:
+            min_costs[i:] = c
+            for k in range(min_params[i:]):
+                min_params[(i + k) :, :] = params[i, :]
+    return min_costs, min_params
 
 
 def _CostLengthEqualiser(costs_list, runs_list, repeats):

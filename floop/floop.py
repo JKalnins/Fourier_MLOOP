@@ -580,19 +580,22 @@ def _SciFormat(preformat, number, postformat="", sf=4):
     return sci
 
 
-def SquareDiffPlot(guess, y_target, ax, fontsize=12, cost_xy=(0, 0)):
+def SquareDiffPlot(
+    guess_params, y_target, ax, fontsize=12, cost_xy=(0, 0), ffamily="serif"
+):
     """Plots the square difference between guess and y_target on a given axes
 
     Args:
-        guess (np.ndarray): parameters for guess
+        guess_params (np.ndarray): parameters for guess
         y_target (np.ndarray): values of target function (200 length)
         ax (matplotlib.axes.Axes): axes to plot the figure on
         fontsize (int, optional): font size for annotations. Defaults to 12.
         cost_xy (tuple, optional): location for cost annotation. Defaults to (0, 0.9).
+        ffamily (str, optional): font family for annotation. Defaults to "serif".
     """
-    y_guess = FourierFromParams(guess)
+    y_guess = FourierFromParams(guess_params)
     square_diff = (y_target - y_guess) ** 2
-    cost = Cost(guess, y_target)[0]
+    cost = Cost(guess_params, y_target)[0]
     xs = np.linspace(-np.pi, np.pi, 200)
     diff_max = np.amax(square_diff)
 
@@ -602,7 +605,7 @@ def SquareDiffPlot(guess, y_target, ax, fontsize=12, cost_xy=(0, 0)):
         _SciFormat("Cost =", cost),
         xy=cost_xy,
         xycoords="axes fraction",
-        fontfamily="serif",
+        fontfamily=ffamily,
         fontsize=fontsize,
     )
     ax.axhline(0, c="k")
@@ -612,5 +615,9 @@ def SquareDiffPlot(guess, y_target, ax, fontsize=12, cost_xy=(0, 0)):
     ax.set_xticks([])
     ax.set_ylim([-0.15 * diff_max, 1.05 * diff_max])
     ax.set_yticks([diff_max])
-    ax.set_yticklabels([_SciFormat("", diff_max, sf=2)])
-    ax.tick_params(axis="y", direction="in", labelsize=11, pad=-65)
+    if diff_max < 0.01:
+        ax.set_yticklabels([_SciFormat("", diff_max, sf=2)])
+        ax.tick_params(axis="y", direction="in", labelsize=11, pad=-65)
+    else:
+        ax.set_yticklabels([f"{diff_max:.2g}"])
+        ax.tick_params(axis="y", direction="in", labelsize=11, pad=-25)

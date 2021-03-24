@@ -16,6 +16,8 @@ The default range of the Fourier series is $[- \pi, \pi]$ with $k=200$ evenly sp
  Code style and formatting is managed with Black.
 
 ## Example
+from floop import floop
+
 ```python
 def main():
     repeats = 3 # number of simulations run

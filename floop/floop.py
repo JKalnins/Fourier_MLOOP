@@ -321,7 +321,7 @@ def _SaveNPZ(filename, *objs):
 def RepeatRuns(
     repeats,
     n_ab,
-    savename,
+    savename=None,
     max_allowed_runs=100,
     tcost=0.0,
     y_targets=None,
@@ -336,7 +336,7 @@ def RepeatRuns(
     Args:
         repeats (int): Number of times M-LOOP will be run
         n_ab (int): number of parameters / 2 (length of a,b for FS)
-        savename (str): filename to save the data to
+        savename (str, optional): filename to save the data to. Defaults to None.
         max_allowed_runs (int, optional): Max number of runs for each repeat. Defaults to 100.
         tcost (float, optional): Target cost for each run. Defaults to 0.0.
         y_targets (list of np.ndarrays, optional): if specified, gives a target function. If not specified, random FS is used each time. Defaults to None.
@@ -416,6 +416,8 @@ def RepeatRuns(
     _TimingFormatter(times_list)
 
     if save:
+        if not savename:
+            savename = _TimeToString(datetime.datetime.now())
         _SaveNPZ(
             savename,
             # hyperparameters

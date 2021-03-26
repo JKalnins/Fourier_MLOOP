@@ -8,10 +8,10 @@ import mloop.interfaces as mli
 
 
 def FourierFromParams(params):
-    """Calculate the y-values of a fourier series with given a, b parameters, normalised to the maximum y-value.
+    """Calculate the y-values of a fourier series with given parameters, normalised to the maximum y-value.
 
     Args:
-        params (np.ndarray): array of (2 * n_ab) elements determining a-coefficients
+        params (np.ndarray): array of (2 * n_ab) elements determining coefficients
 
     Returns:
         np.ndarray: array of 200 y-values from FS

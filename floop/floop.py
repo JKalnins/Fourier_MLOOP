@@ -364,11 +364,13 @@ def RepeatRuns(
     runs_list = np.zeros(repeats, dtype=int)
 
     # repeatedly run M-LOOP
+    y_t_params = None
     if not isinstance(y_targets, list):
         y_targets = np.zeros((repeats, 200))
+        y_t_params = [(np.random.random(n_ab * 2) * 2) - 1 for _ in range(repeats)]
         for rep in range(repeats):
-            guess_params = (np.random.random(n_ab * 2) * 2) - 1
-            y_targets[rep] = FourierFromParams(guess_params)
+            params = y_t_params[rep]
+            y_targets[rep] = FourierFromParams(params)
 
     for rep in range(repeats):
         y_target = y_targets[rep]
@@ -418,6 +420,7 @@ def RepeatRuns(
     if save:
         if not savename:
             savename = _TimeToString(datetime.datetime.now())
+        if
         _SaveNPZ(
             savename,
             # hyperparameters
@@ -425,6 +428,7 @@ def RepeatRuns(
             max_allowed_runs,
             tcost,
             n_ab,
+            y_t_params,
             y_targets,
             noise_type,
             noise_scale,
@@ -453,6 +457,76 @@ def RepeatRuns(
 
 def ReadRepeatNPZ(filename=None, fullpath=None):
     """Reads an NPZ file saved by RepeatRuns
+
+    Args:
+        filename (str, optional): filename supplied to RepeatRuns. Defaults to None.
+        fullpath (str, optional): Full file path in case filename fails for some reason. Defaults to None.
+
+    Returns: (various) - see RepeatRuns for explanation of outputs
+        ----hyperparameters----
+        repeats,
+        max_allowed_runs,
+        tcost,
+        n_ab,
+        y_t_params,
+        y_targets,
+        noise_type,
+        noise_scale,
+        learner_type,
+        ----outputs----
+        start_times,
+        max_runs,
+        costs_arr,
+        params_list,
+        min_costs_arr,
+        min_costs_mean,
+        min_costs_stderr
+    """
+    if not fullpath:
+        npz = np.load(f"./npz/{filename}.npz")
+    else:
+        npz = np.load(fullpath)
+    repeats = int(npz["arr_0"])
+    max_allowed_runs = int(npz["arr_1"])
+    tcost = float(npz["arr_2"])
+    n_ab = int(npz["arr_3"])
+    y_t_params = npz["arr_4"]
+    y_targets = npz["arr_5"]
+    noise_type = str(npz["arr_6"])
+    noise_scale = float(npz["arr_7"])
+    learner_type = str(npz["arr_8"])
+    start_times = list(npz["arr_9"])
+    times_list = npz["arr_10"]
+    max_runs = int(npz["arr_11"])
+    costs_arr = npz["arr_12"]
+    params_list = list(npz["arr_13"])
+    min_costs_arr = npz["arr_14"]
+    min_costs_mean = npz["arr_15"]
+    min_costs_stderr = npz["arr_16"]
+    return (
+        repeats,
+        max_allowed_runs,
+        tcost,
+        n_ab,
+        y_t_params,
+        y_targets,
+        noise_type,
+        noise_scale,
+        learner_type,
+        start_times,
+        times_list,
+        max_runs,
+        costs_arr,
+        params_list,
+        min_costs_arr,
+        min_costs_mean,
+        min_costs_stderr,
+    )
+
+
+def _LegacyReadRepeatNPZ(filename=None, fullpath=None):
+    """Reads an NPZ file saved by RepeatRuns, LEGACY
+    (Reads files where y_t_params does not exist, but all new files should have y_t_params)
 
     Args:
         filename (str, optional): filename supplied to RepeatRuns. Defaults to None.

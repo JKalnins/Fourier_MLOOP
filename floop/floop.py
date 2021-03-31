@@ -252,12 +252,12 @@ def MinCostAndParams(costs, params):
     """
     min_costs = np.full_like(costs, costs[0])
     min_params = np.empty_like(params)
-    for j in range(min_params):
+    for j in range(len(min_params)):
         min_params[j, :] = params[0, :]
     for i, c in enumerate(costs):
         if c < min_costs[i]:
             min_costs[i:] = c
-            for k in range(min_params[i:]):
+            for k in range(len(min_params[i:])):
                 min_params[(i + k) :, :] = params[i, :]
     return min_costs, min_params
 
